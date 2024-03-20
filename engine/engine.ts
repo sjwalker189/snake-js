@@ -1,3 +1,5 @@
+import { EventEmitter } from "./event-emitter";
+
 type Coordinate = [number, number]; // row, col
 type Positions = Coordinate[];
 
@@ -6,27 +8,6 @@ enum Direction {
   DOWN,
   LEFT,
   RIGHT,
-}
-
-
-class EventEmitter {
-  listeners = new Map<string, (value: any) => void>();
-
-  emit(msg: string, value: any) {
-    //
-  }
-
-  on(msg: string, cb: (value: any) => void) {
-    if (this.listeners.has(msg)) {
-      this.listeners.get(msg)!.add(cb);
-    } else {
-      this.listeners.set(msg, new Set([cb]));
-    }
-
-    return () => {
-      this.listeners.get(msg)?.delete(cb);
-    }
-  }
 }
 
 const AllowedMovements = new Map<Direction, Direction[]>([
@@ -41,15 +22,18 @@ export class GameEngine extends EventEmitter {
   start: number | undefined;
   end: number | undefined;
   tickRate = 500;
+ 
   options = {
     borders: true,
   };
+
   /** food */
   consumed = 0;
   foodPosition: Coordinate = [-1, -1];
 
   /** snake */
   currentDirection = Direction.UP;
+
   position: Positions = [
     [8, 16],
     [8, 17],
@@ -73,8 +57,8 @@ export class GameEngine extends EventEmitter {
     this.locked = false;
   }
 
-  get done() {
-    return this.end !== undefined;
+  score() {
+    return this.consumed * 10;
   }
 
   getDirection(): Direction {
@@ -107,10 +91,6 @@ export class GameEngine extends EventEmitter {
 
     this.foodPosition[0] = row;
     this.foodPosition[1] = col;
-  }
-
-  isFoodAvailable() {
-    return this.foodPosition[0] >= 0 && this.foodPosition[1] >= 0;
   }
 
   isFoodAt(row: number, col: number) {
@@ -174,35 +154,32 @@ export class GameEngine extends EventEmitter {
   }
 
   private async onTick() {
-    console.log("ontick start");
     const next = this.getNextCoordinate();
     if (next === false) {
-      console.log("no next move. game over");
+      this.emit("gameover");
       return;
     }
 
     const [row, col] = next;
 
-    if (this.isFoodAvailable() && this.isFoodAt(row, col)) {
-      console.log("Consumed food. Leveling up");
+    if (this.isFoodAt(row, col)) {
       // Add the next position to the head to grow and move along the board
       this.position.unshift(next);
       this.consumed += 1;
       this.levelUp();
       this.placeFood();
     } else {
-      console.log("moved");
       // Move the tail to head to move along the board
       this.position.pop();
       this.position.unshift(next);
     }
 
     this.ticks += 1;
-
-    console.log("ontick end");
+    this.emit("move");
   }
 
   protected async *loop() {
+    // TODO: Calculate frame deltas to ensure a consistent tick rate
     let tick = 0;
     while (!this.end) {
       yield tick++;
@@ -213,6 +190,7 @@ export class GameEngine extends EventEmitter {
   protected levelUp() {
     // Increase the tick rate by 5% on each level up
     this.tickRate = this.tickRate * 0.05;
+    this.emit("levelup");
   }
 
   setup() {
@@ -221,20 +199,24 @@ export class GameEngine extends EventEmitter {
 
   async run() {
     this.start = Date.now();
+    this.emit("gamestart");
     this.setup();
+
+    let lastTick = 0;
     for await (const tick of this.loop()) {
-      console.log(`tick: ${tick}`, this.state());
       this.lock();
+      this.emit("tick", tick);
       this.onTick();
       this.unlock();
+      lastTick = tick;
     }
-  }
 
-  private state() {
+    this.emit("gameend");
+
     return {
-      snake: this.position,
+      score: this.score(),
       consumed: this.consumed,
-    };
+    }
   }
 }
 

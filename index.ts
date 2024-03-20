@@ -1,6 +1,17 @@
 import { GameEngine } from "./engine/engine";
 
-const engine = new GameEngine();
+async function main() {
+    const engine = new GameEngine();
 
-engine.run();
+    engine.on("gamestart", () => console.log("game started")) 
+    engine.on("gameend", () => console.log("game ended"))
+    engine.on("tick", () => console.log("tick"))
+    
+    const result = await engine.run();
+
+    console.log(JSON.stringify(result, null, 2));
+    process.exit(0)
+}
+
+main();
 
