@@ -1,0 +1,51 @@
+:root {
+	--color-bg: #839e6b;
+	--color-fg: #09302f;
+	--border-size: 4px;
+	--cell-size: 15px;
+}
+
+body {
+	background: var(--color-bg);
+	color: var(--color-fg);
+	font-family: monospace;
+}
+
+.text-lg {
+	font-size: 1.25rem;
+	line-height: 1.15;
+}
+
+.GameBoard {
+	border: var(--border-size) solid var(--color-fg);
+	width: auto;
+	display: flex;
+	flex-direction: column;
+}
+
+
+.ContentContainer {
+	margin-inline: auto;
+	width: fit-content;
+	padding-top: 15%;
+}
+
+.Row {
+	display: flex;
+}
+
+.Cell {
+	display: inline-block;
+	outline: 2px solid rgba(255, 255, 255, 0.2);
+	outline-offset: -4px;
+}
+
+.Cell.Food {
+	background: pink;
+}
+
+.Cell.Tail {
+	background: var(--color-fg);
+	outline: 2px solid var(--color-bg);
+	outline-offset: -4px;
+}
